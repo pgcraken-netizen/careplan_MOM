@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 担当者会議 議事録アプリ（アソシエ）
 
-## Getting Started
+サービス担当者会議の録音から、第4表「サービス担当者会議の要点」に沿った議事録の下書きをAIで作り、
+ケアマネジャーが確認・編集して確定するWebアプリです。確定した議事録は **A4縦1枚** に収まる形で
+PDF・Word・Excel・印刷に出力できます。
 
-First, run the development server:
+## 画面
+
+| 画面 | パス | 内容 |
+| --- | --- | --- |
+| 会議一覧 | `/` | 検索、利用者・月・状態の絞り込み、未確定／最近の会議 |
+| 新規登録 | `/new` | 録音ファイルの選択またはその場で録音、AI下書き／手入力／見本で試す |
+| 議事録の編集 | `/meetings/[id]` | 第4表の全項目、AI行の色分けと「確認した」、根拠の発言の再生、確定前チェック、確定ロック |
+| 出力プレビュー | `/meetings/[id]/print` | A4 1枚のプレビュー、印刷・PDF・Word・Excel |
+| 利用者 | `/clients` | 利用者ごとの会議タイムラインと前回の宿題 |
+| 検索 | `/search` | 議事録本文と文字起こしの横断検索 |
+| 設定 | `/settings` | 作成者、利用者・場所・固有名詞辞書、音声の保持日数、バックアップ |
+
+## AIの処理
+
+1. ブラウザ内で音声を 16kHz モノラルに変換し、90秒ずつの WAV に分割
+2. `/api/transcribe` が OpenAI の文字起こしAPI（既定 `whisper-1`）へ転送（並列3本）
+3. `/api/classify` が Claude API へ文字起こしを渡し、第4表の項目に振り分け
+   - 各行に根拠の発言IDを必須で付け、該当発言が無い項目は空のまま返す
+   - 日付・利用者・場所は「候補」として返し、確定値にしない
+4. 前回会議の宿題・モニタリング点を自動で引き継ぎ、対応状況をAIが判定
+
+元の音声はサーバーに保存しません（端末内の IndexedDB にのみ保存し、確定後の保持日数で自動削除）。
+
+## 環境変数（Vercel の Environment Variables）
+
+| 変数 | 必須 | 内容 |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | AI利用時 | 文字起こし用 |
+| `ANTHROPIC_API_KEY` | AI利用時 | 項目整理用 |
+| `OPENAI_TRANSCRIBE_MODEL` | 任意 | 既定 `whisper-1` |
+| `ANTHROPIC_MODEL` | 任意 | 既定 `claude-sonnet-5-5` |
+
+キーが無い状態でも、手入力・見本データ・出力機能はすべて使えます。
+
+## データの保存先
+
+現状は **端末内（ブラウザの IndexedDB）** に保存します。PCとスマホで共有するには
+Supabase（東京リージョン、RLS）への移行が必要です。保存処理は `src/lib/store.ts` に集約しているので、
+ここを差し替えれば画面側の変更は最小限で済みます。
+
+## 出力のしくみ
+
+- **PDF**：画面のA4シートを高解像度で画像化してA4のPDFに配置（見た目が完全に一致）
+- **印刷**：同じシートを `@page { size: A4 }` で印刷（文字検索できるPDFが必要なときは印刷画面から「PDFに保存」）
+- **Word**：A4・余白10mm。シートの縮小率に合わせて文字サイズと行間（固定値）を決めて1ページに収める
+- **Excel**：16列グリッド、印刷設定「A4縦・1ページに収める」
+- 内容が多いときはシートを自動で縮小（下限60%）、少ないときは最大110%まで拡大
+
+## 開発
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

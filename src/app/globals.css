@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-ink: #1f2a44;
+  --color-ink-soft: #5b667d;
+  --color-ink-faint: #8a93a6;
+  --color-navy: #1f3a68;
+  --color-brand: #3a62b4;
+  --color-brand-dark: #2c4f98;
+  --color-brand-soft: #e8eefa;
+  --color-line: #e3e8f0;
+  --color-paper: #f6f8fb;
+  --color-ai: #efeafc;
+  --color-ai-ink: #5b45b0;
+  --font-sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --font-round: "M PLUS Rounded 1c", "Noto Sans JP", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "palt" 1;
+}
+
+/* 入力欄の共通スタイル */
+@utility field {
+  @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20;
+}
+
+textarea {
+  resize: none;
+  line-height: 1.6;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-white shadow-sm hover:bg-brand-dark;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-white text-ink hover:bg-paper;
+}
+
+/* ---- A4 印刷 ---- */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-root {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+  .a4-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
